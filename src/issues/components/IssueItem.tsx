@@ -1,7 +1,10 @@
 import { FC } from "react";
 import { FiInfo, FiMessageSquare, FiCheckCircle } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+
 import { Issue, State } from "../interfaces";
+import { getIssueComments, getIssueInfo } from "../hooks/useIssue";
 
 interface Props {
   issue: Issue;
@@ -10,10 +13,30 @@ interface Props {
 export const IssueItem: FC<Props> = ({ issue }) => {
   const { user } = issue;
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const prefetchData = () => {
+    queryClient.prefetchQuery(["issue", issue.number], () =>
+      getIssueInfo(issue.number)
+    );
+    // TODO: Prefetch comments for issue
+    queryClient.prefetchQuery(["issue", issue.number, "comments"], () =>
+      getIssueComments(issue.number)
+    );
+  };
+
+  const presetData = () => {
+    queryClient.setQueryData(["issue", issue.number], issue, {
+      updatedAt: new Date().getTime() + 100_000,
+    });
+  };
+
   return (
     <div
       className="card mb-2 issue"
       onClick={() => navigate(`/issues/issue/${issue.number}`)}
+      // onMouseEnter={prefetchData}
+      onMouseEnter={presetData}
     >
       <div className="card-body d-flex align-items-center">
         {issue.state === State.Open ? (
@@ -33,7 +56,6 @@ export const IssueItem: FC<Props> = ({ issue }) => {
         <div className="d-flex align-items-center">
           <img
             src={user.avatar_url}
-            // src={`https://avatars.githubusercontent.com/u/${user.login}?v=4`}
             alt={`${user.login} Avatar`}
             className="avatar"
           />
